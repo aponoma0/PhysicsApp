@@ -52,20 +52,15 @@ const App: React.FC = () => {
     ? (COURSES.find(c => c.id === user.currentCourseId) || COURSES[0])
     : COURSES[0];
 
-  const lessonOrder = currentCourse.units.flatMap(unit => unit.lessons.map(lesson => lesson.id));
-
   const unitsWithStatus = user && currentCourse.units ? currentCourse.units.map(unit => ({
     ...unit,
     lessons: unit.lessons.map((lesson) => {
       const isCompleted = user.completedLessons.includes(lesson.id);
-      const index = lessonOrder.indexOf(lesson.id);
-      const previousLessonId = index > 0 ? lessonOrder[index - 1] : null;
-      const isUnlocked = index === 0 || isCompleted || (!!previousLessonId && user.completedLessons.includes(previousLessonId));
 
       return {
         ...lesson,
         completed: isCompleted,
-        locked: !isUnlocked
+        locked: false
       };
     })
   })) : [];

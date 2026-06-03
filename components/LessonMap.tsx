@@ -10,6 +10,9 @@ interface LessonMapProps {
 
 const LessonMap: React.FC<LessonMapProps> = ({ units, activeUnitId, onLessonClick }) => {
   const isImage = (icon: string) => icon.startsWith('http') || icon.startsWith('data:image');
+  const nextLessonId = units
+    .flatMap(unit => unit.lessons)
+    .find(lesson => !lesson.completed && !lesson.locked)?.id;
   const colorStyles: Record<string, { node: string; text: string; ring: string; soft: string }> = {
     green: {
       node: 'bg-green-500 border-green-700',
@@ -84,7 +87,7 @@ const LessonMap: React.FC<LessonMapProps> = ({ units, activeUnitId, onLessonClic
               
               const lockedClass = 'bg-gray-700 border-gray-600 grayscale opacity-70';
               const activeClass = lesson.locked ? lockedClass : style.node;
-              const isCurrent = !lesson.locked && !lesson.completed;
+              const isCurrent = lesson.id === nextLessonId;
               
               return (
                 <div 

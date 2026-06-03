@@ -18,8 +18,9 @@ const getFallbackLessonContent = (topic: string, isRevision: boolean): LessonCon
     .replace(/\([^)]*\)/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+  const normalizedTopic = topic.toLowerCase();
 
-  return {
+  const fallback: LessonContent = {
     theory: {
       title: isRevision ? 'Quick Revision' : 'Physics Warm-Up',
       paragraphs: isRevision
@@ -56,6 +57,62 @@ const getFallbackLessonContent = (topic: string, isRevision: boolean): LessonCon
       }
     ]
   };
+
+  if (normalizedTopic.includes('scalars') && normalizedTopic.includes('vectors')) {
+    fallback.theory = {
+      title: 'Scalars vs Vectors',
+      paragraphs: [
+        'In physics, we measure many things. Some things, like **Time** or **Temperature**, are simple because they just have a **magnitude**. These are called **Scalars**.',
+        'Other things, like a [force||A push or pull on an object] or acceleration, have both a magnitude and a **direction**. These are called **Vectors**.',
+        "Think of it this way: temperature is '70 degrees' as a scalar, but a push has to point somewhere as a vector."
+      ],
+      keyPoint: 'Vectors have direction; scalars only have size.',
+      sortingGame: {
+        title: 'Sort the Quantities',
+        categories: [
+          { id: 'scalar', label: 'Scalar (No Direction)', color: 'blue' },
+          { id: 'vector', label: 'Vector (With Direction)', color: 'purple' }
+        ],
+        items: [
+          { id: 'temp', label: 'Temperature', icon: '🌡️', categoryId: 'scalar' },
+          { id: 'mass', label: 'Mass', icon: '⚖️', categoryId: 'scalar' },
+          { id: 'time', label: 'Time', icon: '⏰', categoryId: 'scalar' },
+          { id: 'force', label: 'Force', icon: '✋', categoryId: 'vector' },
+          { id: 'gravity', label: 'Gravity', icon: '⬇️', categoryId: 'vector' },
+          { id: 'accel', label: 'Acceleration', icon: '🚀', categoryId: 'vector' }
+        ]
+      }
+    };
+    fallback.questions = [
+      {
+        id: 'fallback-1',
+        text: 'Which of these is a vector quantity?',
+        options: ['Temperature', 'Mass', 'Force', 'Time'],
+        correctAnswerIndex: 2,
+        explanation: 'Force is a push or pull, and it always acts in a direction.'
+      },
+      {
+        id: 'fallback-2',
+        text: 'Is "50 kg" a scalar or a vector?',
+        options: ['Scalar', 'Vector', 'Neither', 'Both'],
+        correctAnswerIndex: 0,
+        explanation: 'Mass has size but no direction, so it is a scalar.'
+      },
+      {
+        id: 'fallback-3',
+        text: 'What is the main difference between scalars and vectors?',
+        options: ['Scalars are larger', 'Vectors have direction', 'Scalars are red', 'Vectors are heavier'],
+        correctAnswerIndex: 1,
+        explanation: 'Vectors include direction, such as north, down, or left.'
+      }
+    ];
+  }
+
+  if (normalizedTopic.includes('distance') && normalizedTopic.includes('displacement')) {
+    fallback.theory.simulationType = 'distance-displacement';
+  }
+
+  return fallback;
 };
 
 const hasUsableContent = (data: any): data is LessonContent => {
