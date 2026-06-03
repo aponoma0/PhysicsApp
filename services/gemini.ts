@@ -13,10 +13,68 @@ const getAI = () => {
   return ai;
 }
 
-export const generateLessonContent = async (topic: string, interests?: string[]): Promise<LessonContent> => {
-  try {
-    const isRevision = topic.toLowerCase().includes('revision') || topic.toLowerCase().includes('review') || topic.toLowerCase().includes('quiz');
+const getFallbackLessonContent = (topic: string, isRevision: boolean): LessonContent => {
+  const cleanTopic = topic
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
+  return {
+    theory: {
+      title: isRevision ? 'Quick Revision' : 'Physics Warm-Up',
+      paragraphs: isRevision
+        ? ['This review checks the biggest ideas from the unit. Read each question slowly and use the explanations to patch any gaps.']
+        : [
+            `Today you are learning about **${cleanTopic}**. Physics is about spotting patterns in how the world moves, changes, and transfers energy.`,
+            `Start with the main idea, then test it with simple examples. A good physics answer explains what changes, what stays the same, and why.`
+          ],
+      keyPoint: isRevision
+        ? 'Use every mistake as a clue for what to review next.'
+        : 'Physics gets easier when you connect the idea to a real situation.'
+    },
+    questions: [
+      {
+        id: 'fallback-q1',
+        text: `What is the best first step when solving a question about ${cleanTopic}?`,
+        options: ['Guess the formula', 'Identify what the question is asking', 'Ignore the units', 'Choose the biggest number'],
+        correctAnswerIndex: 1,
+        explanation: 'Before using a formula, make sure you understand the physical situation and the quantity being asked for.'
+      },
+      {
+        id: 'fallback-q2',
+        text: 'Why are units important in physics?',
+        options: ['They make answers look longer', 'They show what a number means', 'They replace explanations', 'They are only used in exams'],
+        correctAnswerIndex: 1,
+        explanation: 'A number without a unit is hard to interpret. Units tell you whether you measured distance, time, force, energy, or something else.'
+      },
+      {
+        id: 'fallback-q3',
+        text: 'What should you do after getting a physics answer?',
+        options: ['Check if it makes sense', 'Always round to zero', 'Delete your working', 'Change it until it looks familiar'],
+        correctAnswerIndex: 0,
+        explanation: 'A quick sense-check catches many mistakes, especially answers with impossible sizes or wrong units.'
+      }
+    ]
+  };
+};
+
+const hasUsableContent = (data: any): data is LessonContent => {
+  return Boolean(
+    data &&
+    data.theory &&
+    typeof data.theory.title === 'string' &&
+    Array.isArray(data.theory.paragraphs) &&
+    data.theory.paragraphs.length > 0 &&
+    typeof data.theory.keyPoint === 'string' &&
+    Array.isArray(data.questions) &&
+    data.questions.length > 0
+  );
+};
+
+export const generateLessonContent = async (topic: string, interests?: string[]): Promise<LessonContent> => {
+  const isRevision = topic.toLowerCase().includes('revision') || topic.toLowerCase().includes('review') || topic.toLowerCase().includes('quiz');
+
+  try {
     let promptContext = `Create a ${isRevision ? 'comprehensive revision quiz' : 'bite-sized physics lesson'} about "${topic}" for a mobile app.`;
     
     if (interests && interests.length > 0) {
@@ -143,6 +201,9 @@ export const generateLessonContent = async (topic: string, interests?: string[])
     
     const data = JSON.parse(jsonText);
     if (!data.questions) data.questions = [];
+    if (!hasUsableContent(data)) {
+      return getFallbackLessonContent(topic, isRevision);
+    }
 
     // --- MANUAL OVERRIDES & INJECTIONS ---
     
@@ -260,55 +321,6 @@ export const generateLessonContent = async (topic: string, interests?: string[])
     return data as LessonContent;
   } catch (error) {
     console.error("Failed to generate lesson content:", error);
-    // Fallback data
-    return {
-      theory: {
-        title: "Scalars vs Vectors",
-        paragraphs: [
-          "In physics, we measure many things. Some things, like **Time** or **Temperature**, are simple—they just have a **magnitude** (a size). These are called **Scalars**.",
-          "Other things, like a [force||A push or pull on an object] or acceleration, are more complex. They have both a magnitude AND a **direction**. We call these **Vectors**.",
-          "Think of it this way: The temperature is '70°F' (Scalar). But when you push a door, you have to push it 'Forward' (Vector)."
-        ],
-        keyPoint: "Vectors have direction (like a push); Scalars just have size (like time).",
-        sortingGame: {
-          title: "Sort the Quantities",
-          categories: [
-            { id: 'scalar', label: 'Scalar (No Direction)', color: 'blue' },
-            { id: 'vector', label: 'Vector (With Direction)', color: 'purple' }
-          ],
-          items: [
-            { id: 'temp', label: 'Temperature', icon: '🌡️', categoryId: 'scalar' },
-            { id: 'mass', label: 'Mass', icon: '⚖️', categoryId: 'scalar' },
-            { id: 'time', label: 'Time', icon: '⏰', categoryId: 'scalar' },
-            { id: 'force', label: 'Force (Push)', icon: '✋', categoryId: 'vector' },
-            { id: 'gravity', label: 'Gravity', icon: '⬇️', categoryId: 'vector' },
-            { id: 'accel', label: 'Acceleration', icon: '🚀', categoryId: 'vector' }
-          ]
-        }
-      },
-      questions: [
-        {
-          id: 'fallback-1',
-          text: 'Which of these is a Vector quantity?',
-          options: ['Temperature', 'Mass', 'Force', 'Time'],
-          correctAnswerIndex: 2,
-          explanation: 'Force is a push or pull, which always has a specific direction.'
-        },
-        {
-          id: 'fallback-2',
-          text: 'Is "50 kg" a scalar or a vector?',
-          options: ['Scalar', 'Vector', 'Neither', 'Both'],
-          correctAnswerIndex: 0,
-          explanation: "Mass (kg) has size but no direction, so it is a scalar."
-        },
-        {
-          id: 'fallback-3',
-          text: 'What is the main difference between Scalars and Vectors?',
-          options: ['Scalars are larger', 'Vectors have direction', 'Scalars are red', 'Vectors are heavier'],
-          correctAnswerIndex: 1,
-          explanation: "The key difference is that Vectors include direction (like North, Down, Left)."
-        }
-      ]
-    };
+    return getFallbackLessonContent(topic, isRevision);
   }
 };

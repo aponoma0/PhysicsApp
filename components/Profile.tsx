@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { UserState, UserPreferences } from '../types';
 import { BADGES, PERSONALIZATION_OPTIONS } from '../constants';
-import { Flame, Award, Zap, LogOut, ShieldCheck, Trash2, Sliders, User } from 'lucide-react';
+import { Flame, Award, Zap, LogOut, ShieldCheck, Trash2, Sliders, User, Heart, CheckCircle2 } from 'lucide-react';
 import OnboardingQuiz from './OnboardingQuiz';
 
 interface ProfileProps {
@@ -35,7 +35,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout, onReset, onUpdatePref
   }
 
   return (
-    <div className="p-6 pb-32 pt-20 bg-gray-900 min-h-screen">
+    <div className="p-6 pb-32 pt-[calc(5rem+env(safe-area-inset-top))] bg-gray-950 min-h-screen">
       <div className="flex flex-col items-center mb-10 animate-in slide-in-from-top duration-500">
         <div className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl shadow-lg mb-4 overflow-hidden border-4 ${isImageAvatar ? 'bg-gray-200 border-gray-400' : 'bg-blue-500 border-blue-700'}`}>
           {isImageAvatar ? (
@@ -61,16 +61,26 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout, onReset, onUpdatePref
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-col items-center">
+      <div className="grid grid-cols-2 gap-3 mb-8">
+        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 flex flex-col items-center">
           <Flame className="text-orange-500 w-8 h-8 mb-2" />
           <span className="text-2xl font-bold">{user.streak}</span>
           <span className="text-xs text-gray-400 uppercase tracking-wider">Day Streak</span>
         </div>
-        <div className="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-col items-center">
+        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 flex flex-col items-center">
           <Zap className="text-yellow-400 w-8 h-8 mb-2" />
           <span className="text-2xl font-bold">{user.xp}</span>
           <span className="text-xs text-gray-400 uppercase tracking-wider">Total XP</span>
+        </div>
+        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 flex flex-col items-center">
+          <Heart className="text-red-500 fill-red-500 w-8 h-8 mb-2" />
+          <span className="text-2xl font-bold">{user.hearts}/{user.maxHearts}</span>
+          <span className="text-xs text-gray-400 uppercase tracking-wider">Hearts</span>
+        </div>
+        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 flex flex-col items-center">
+          <CheckCircle2 className="text-green-400 w-8 h-8 mb-2" />
+          <span className="text-2xl font-bold">{user.completedLessons.length}</span>
+          <span className="text-xs text-gray-400 uppercase tracking-wider">Lessons</span>
         </div>
       </div>
 
@@ -89,7 +99,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout, onReset, onUpdatePref
         </div>
 
         {user.preferences ? (
-           <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 space-y-3">
+           <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 space-y-3">
              <div>
                 <span className="text-xs text-gray-500 uppercase font-bold">Interests</span>
                 <div className="flex flex-wrap gap-2 mt-1">
@@ -112,7 +122,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout, onReset, onUpdatePref
              </div>
            </div>
         ) : (
-          <div onClick={() => setShowQuiz(true)} className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 p-6 rounded-xl border border-blue-500/30 text-center cursor-pointer hover:border-blue-400 transition-colors">
+          <div onClick={() => setShowQuiz(true)} className="bg-gray-900 p-6 rounded-xl border border-blue-500/30 text-center cursor-pointer hover:border-blue-400 transition-colors">
              <h3 className="font-bold text-white mb-1">Personalize your learning</h3>
              <p className="text-sm text-gray-400">Answer 3 quick questions to get content tailored to your interests!</p>
           </div>
@@ -130,7 +140,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout, onReset, onUpdatePref
           return (
             <div 
               key={badge.id}
-              className={`p-4 rounded-xl border-2 flex items-center transition-all ${isUnlocked ? 'bg-gray-800 border-yellow-600/50' : 'bg-gray-800/50 border-gray-700 opacity-60'}`}
+              className={`p-4 rounded-xl border-2 flex items-center transition-all ${isUnlocked ? 'bg-gray-900 border-yellow-600/50' : 'bg-gray-900/50 border-gray-800 opacity-60'}`}
             >
               <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl mr-4 border-b-4 ${isUnlocked ? 'bg-yellow-500 border-yellow-700' : 'bg-gray-700 border-gray-800 grayscale'}`}>
                 {badge.icon}
@@ -154,7 +164,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onLogout, onReset, onUpdatePref
       <div className="space-y-4 mb-8">
         <button 
           onClick={onLogout}
-          className="w-full py-4 bg-gray-800 hover:bg-gray-700 rounded-2xl text-gray-300 font-bold uppercase tracking-wide border-2 border-gray-700 flex items-center justify-center transition-colors"
+          className="w-full py-4 bg-gray-900 hover:bg-gray-800 rounded-2xl text-gray-300 font-bold uppercase tracking-wide border-2 border-gray-800 flex items-center justify-center transition-colors"
         >
           <LogOut className="mr-2 w-5 h-5" />
           Log Out

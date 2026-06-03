@@ -7,7 +7,7 @@ import QuizView from './components/QuizView';
 import Leaderboard from './components/Leaderboard';
 import Profile from './components/Profile';
 import AuthScreen from './components/AuthScreen';
-import { Home, Trophy, User, Heart, Zap, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { Home, Trophy, User, Heart, Zap, ChevronDown, Check, Loader2, Sparkles, X } from 'lucide-react';
 
 const App: React.FC = () => {
   // --- STATE ---
@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [quizKey, setQuizKey] = useState(0); 
   const [showCourseMenu, setShowCourseMenu] = useState(false);
   const [showNoHeartsModal, setShowNoHeartsModal] = useState(false);
+  const [earnedBadgeId, setEarnedBadgeId] = useState<string | null>(null);
 
   // --- INITIALIZATION ---
   useEffect(() => {
@@ -51,17 +52,20 @@ const App: React.FC = () => {
     ? (COURSES.find(c => c.id === user.currentCourseId) || COURSES[0])
     : COURSES[0];
 
-  // Unlock logic - UNLOCKED ALL FOR TESTING
+  const lessonOrder = currentCourse.units.flatMap(unit => unit.lessons.map(lesson => lesson.id));
+
   const unitsWithStatus = user && currentCourse.units ? currentCourse.units.map(unit => ({
     ...unit,
     lessons: unit.lessons.map((lesson) => {
       const isCompleted = user.completedLessons.includes(lesson.id);
-      
-      // Always unlocked per user request
+      const index = lessonOrder.indexOf(lesson.id);
+      const previousLessonId = index > 0 ? lessonOrder[index - 1] : null;
+      const isUnlocked = index === 0 || isCompleted || (!!previousLessonId && user.completedLessons.includes(previousLessonId));
+
       return {
         ...lesson,
         completed: isCompleted,
-        locked: false 
+        locked: !isUnlocked
       };
     })
   })) : [];
@@ -113,8 +117,7 @@ const App: React.FC = () => {
       if (!newBadges.includes(badge.id) && badge.condition(newUserState)) {
         newBadges.push(badge.id);
         badgeEarned = true;
-        // Could show a toast notification here
-        alert(`🏆 Badge Unlocked: ${badge.name}!`);
+        setEarnedBadgeId(badge.id);
       }
     });
 
@@ -209,30 +212,31 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white font-sans max-w-lg mx-auto border-x border-gray-800 shadow-2xl relative overflow-hidden">
+    <div className="flex flex-col h-[100dvh] min-h-screen bg-gray-950 text-white font-sans max-w-lg mx-auto border-x border-gray-800 shadow-2xl relative overflow-hidden">
       
       {/* Top Bar */}
-      <div className="h-16 bg-gray-900/95 backdrop-blur border-b border-gray-800 flex items-center justify-between px-4 fixed top-0 w-full max-w-lg z-40">
+      <div className="h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] bg-gray-950/95 backdrop-blur border-b border-gray-800 flex items-center justify-between px-4 fixed top-0 w-full max-w-lg z-40">
         
         {/* Course Picker Button */}
         <button 
           onClick={() => setShowCourseMenu(true)}
-          className="flex items-center space-x-2 hover:bg-gray-800 p-1.5 rounded-lg transition-colors"
+          className="flex items-center space-x-2 hover:bg-gray-800 p-2 rounded-xl transition-colors border border-gray-800"
+          aria-label="Choose course"
         >
           <span className="text-2xl">{currentCourse.icon}</span>
           <ChevronDown className="w-4 h-4 text-gray-400" />
         </button>
 
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-1 text-red-500 font-bold">
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 text-red-500 font-extrabold bg-gray-900 px-2.5 py-1.5 rounded-full border border-gray-800">
             <Heart className="fill-current w-5 h-5" />
             <span>{user.hearts}</span>
           </div>
-          <div className="flex items-center space-x-1 text-yellow-400 font-bold">
+          <div className="flex items-center space-x-1 text-yellow-400 font-extrabold bg-gray-900 px-2.5 py-1.5 rounded-full border border-gray-800">
             <Zap className="fill-current w-5 h-5" />
             <span>{user.xp}</span>
           </div>
-          <div className="flex items-center space-x-1 text-orange-500 font-bold">
+          <div className="flex items-center space-x-1 text-orange-500 font-extrabold bg-gray-900 px-2.5 py-1.5 rounded-full border border-gray-800">
             <span className="text-xl">🔥</span>
             <span>{user.streak}</span>
           </div>
@@ -258,9 +262,48 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {earnedBadgeId && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-gray-900 rounded-3xl p-6 w-full max-w-sm border-2 border-yellow-500/70 shadow-2xl text-center animate-in zoom-in-95 relative overflow-hidden">
+            <button
+              onClick={() => setEarnedBadgeId(null)}
+              className="absolute right-4 top-4 text-gray-500 hover:text-white"
+              aria-label="Close badge reward"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="absolute inset-x-8 top-0 h-16 bg-yellow-400/20 blur-3xl" />
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 text-yellow-300 text-xs font-extrabold uppercase tracking-[0.18em] mb-4">
+                <Sparkles className="w-4 h-4" />
+                Badge unlocked
+              </div>
+              {(() => {
+                const badge = BADGES.find(item => item.id === earnedBadgeId);
+                return (
+                  <>
+                    <div className="w-24 h-24 mx-auto rounded-full bg-yellow-400 border-b-8 border-yellow-700 flex items-center justify-center text-5xl shadow-[0_0_35px_rgba(250,204,21,0.35)] mb-5">
+                      {badge?.icon || '🏆'}
+                    </div>
+                    <h3 className="text-2xl font-extrabold text-white mb-2">{badge?.name || 'New Badge'}</h3>
+                    <p className="text-gray-400 mb-6">{badge?.description || 'You made real progress.'}</p>
+                  </>
+                );
+              })()}
+              <button
+                onClick={() => setEarnedBadgeId(null)}
+                className="w-full py-3 bg-green-500 hover:bg-green-400 text-white rounded-xl font-extrabold uppercase tracking-wide border-b-4 border-green-700 active:border-b-0 active:translate-y-1"
+              >
+                Nice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Course Selection Modal Overlay */}
       {showCourseMenu && (
-        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 flex flex-col pt-16">
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 flex flex-col pt-[calc(4rem+env(safe-area-inset-top))]">
           <div className="bg-gray-900 p-4 border-b border-gray-700 shadow-2xl animate-in slide-in-from-top-10 duration-300">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-200">My Courses</h2>
@@ -318,7 +361,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="h-24 bg-gray-900 border-t border-gray-800 flex items-center justify-around px-4 pb-4 fixed bottom-0 w-full max-w-lg z-40">
+      <div className="h-[calc(5.5rem+env(safe-area-inset-bottom))] bg-gray-950/95 backdrop-blur border-t border-gray-800 flex items-start justify-around px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] fixed bottom-0 w-full max-w-lg z-40">
         <button 
           onClick={() => setActiveTab('learn')}
           className={`flex flex-col items-center p-2 rounded-xl transition-all ${activeTab === 'learn' ? 'text-blue-400 bg-blue-900/20 border-2 border-blue-900' : 'text-gray-500 hover:text-gray-300'}`}

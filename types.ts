@@ -81,7 +81,7 @@ export interface Badge {
 export interface UserPreferences {
   interests: string[];
   confidence: 'high' | 'medium' | 'low' | 'unknown';
-  goal: 'school' | 'exam' | 'fun' | 'world';
+  goal: 'school' | 'grades' | 'exam' | 'fun' | 'world';
 }
 
 export interface UserState {

@@ -42,6 +42,12 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
     let mounted = true;
     const loadContent = async () => {
       setLoading(true);
+      setViewState('loading');
+      setCurrentIndex(0);
+      setSelectedOption(null);
+      setTextAnswer('');
+      setStatus('idle');
+      setStreak(0);
       try {
         const interests = userPreferences?.interests;
         const data = await generateLessonContent(lesson.topic, interests);
@@ -62,7 +68,12 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
         }
       } catch (e) {
         console.error(e);
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setQuestions([]);
+          setTheory(null);
+          setLoading(false);
+          setViewState('theory');
+        }
       }
     };
     loadContent();
@@ -172,10 +183,12 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
   // --- LOADING STATE ---
   if (viewState === 'loading') {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white p-6 text-center">
-        <Loader2 className="w-12 h-12 animate-spin text-green-500 mb-4" />
-        <p className="text-lg font-medium animate-pulse">Preparing lesson...</p>
-        <p className="text-sm text-gray-400 mt-2">Generating personalized theory & questions</p>
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gray-950 text-white p-6 text-center">
+        <div className="w-24 h-24 rounded-3xl bg-green-500/10 border border-green-500/30 flex items-center justify-center mb-5">
+          <Loader2 className="w-11 h-11 animate-spin text-green-400" />
+        </div>
+        <p className="text-xl font-extrabold animate-pulse">Preparing lesson...</p>
+        <p className="text-sm text-gray-400 mt-2 max-w-xs">Building a short physics practice round for {lesson.title}.</p>
         <button onClick={onExit} className="mt-12 text-gray-500 hover:text-gray-300 text-sm font-bold uppercase tracking-wide py-2 px-6 rounded-lg border border-gray-700 hover:bg-gray-800 transition-colors">
           Cancel
         </button>
@@ -186,7 +199,7 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
   // --- GAME OVER STATE ---
   if (hearts === 0 && status === 'idle') {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-900 px-6 text-center animate-in fade-in duration-500">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gray-950 px-6 text-center animate-in fade-in duration-500">
         <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6 border-4 border-gray-700">
           <Heart className="w-12 h-12 text-gray-500 fill-gray-500" /> 
         </div>
@@ -213,7 +226,7 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
   // --- SUCCESS / COMPLETED STATE ---
   if (viewState === 'completed') {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white p-6 text-center animate-in zoom-in-95 duration-500">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gray-950 text-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-center animate-in zoom-in-95 duration-500">
         
         {/* Success Animation Area */}
         <div className="relative mb-8">
@@ -260,9 +273,13 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
   // --- ERROR STATE ---
   if (!theory || questions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-900">
-        <p className="text-red-400">Failed to load lesson content.</p>
-        <button onClick={onExit} className="mt-4 px-6 py-2 bg-gray-700 rounded-lg">Go Back</button>
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gray-950 p-6 text-center">
+        <div className="w-20 h-20 rounded-3xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-5">
+          <Lightbulb className="w-10 h-10 text-red-300" />
+        </div>
+        <h2 className="text-2xl font-extrabold text-white mb-2">Lesson needs a refresh</h2>
+        <p className="text-gray-400 max-w-xs">We could not prepare enough practice content this time. Go back and try the lesson again.</p>
+        <button onClick={onExit} className="mt-6 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl font-bold border border-gray-700">Go Back</button>
       </div>
     );
   }
@@ -270,9 +287,9 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
   // --- THEORY VIEW ---
   if (viewState === 'theory') {
     return (
-      <div className="flex flex-col h-full bg-gray-900 relative animate-in slide-in-from-right duration-300">
+      <div className="flex flex-col min-h-[100dvh] bg-gray-950 relative animate-in slide-in-from-right duration-300">
         {/* Header */}
-        <div className="px-4 py-6 flex items-center justify-between">
+        <div className="px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 flex items-center justify-between">
           <button onClick={() => setShowQuitModal(true)} className="text-gray-400 hover:text-white transition-colors">
             <XCircle size={28} />
           </button>
@@ -281,7 +298,7 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-32">
+        <div className="flex-1 overflow-y-auto px-6 pb-[calc(7rem+env(safe-area-inset-bottom))]">
           <div className="flex justify-center mb-6">
             <div className="w-20 h-20 bg-blue-900/30 rounded-2xl flex items-center justify-center text-4xl border-2 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
               {lesson.icon.startsWith('data:') || lesson.icon.startsWith('http') ? (
@@ -361,7 +378,7 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
         </div>
 
         {/* Footer Action */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-900 border-t border-gray-800 z-10">
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-gray-950 border-t border-gray-800 z-10">
           <button 
             onClick={handleStartQuiz}
             disabled={!isSortingGameComplete}
@@ -435,15 +452,15 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
       );
   }
   
-  const progressPercent = ((currentIndex) / questions.length) * 100;
+  const progressPercent = ((currentIndex + (status !== 'idle' ? 1 : 0)) / questions.length) * 100;
   
   // Is this a text input question?
   const isTextQuestion = currentQ.type === 'text';
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 relative">
+    <div className="flex flex-col min-h-[100dvh] bg-gray-950 relative">
       {/* Header */}
-      <div className="px-4 py-4 flex items-center justify-between">
+      <div className="px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 flex items-center justify-between">
         <button onClick={() => setShowQuitModal(true)} className="text-gray-400 hover:text-white transition-colors">
           <XCircle size={28} />
         </button>
@@ -460,8 +477,11 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
       </div>
 
       {/* Question Area */}
-      <div className="flex-1 overflow-y-auto px-4 pb-32">
-        <h2 className="text-2xl font-bold text-white mb-6 mt-4">
+      <div className="flex-1 overflow-y-auto px-4 pb-[calc(12rem+env(safe-area-inset-bottom))]">
+        <div className="inline-flex items-center rounded-full bg-blue-500/10 border border-blue-500/20 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-blue-300 mt-3 mb-4">
+          Question {currentIndex + 1} of {questions.length}
+        </div>
+        <h2 className="text-2xl font-extrabold text-white mb-6">
           {currentQ.text}
         </h2>
 
@@ -523,7 +543,7 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
       </div>
 
       {/* Bottom Action Area */}
-      <div className={`absolute bottom-0 left-0 right-0 p-4 border-t-2 ${status === 'correct' ? 'bg-gray-900 border-green-500' : status === 'wrong' ? 'bg-gray-900 border-red-500' : 'bg-gray-900 border-gray-800'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t-2 ${status === 'correct' ? 'bg-gray-950 border-green-500' : status === 'wrong' ? 'bg-gray-950 border-red-500' : 'bg-gray-950 border-gray-800'}`}>
         {status === 'idle' ? (
           <button 
             onClick={handleCheck}
