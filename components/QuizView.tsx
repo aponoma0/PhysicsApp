@@ -37,6 +37,11 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
   
   // Sorting Game State
   const [isSortingGameComplete, setIsSortingGameComplete] = useState(false);
+  const hasPersonalization = !!userPreferences && (
+    userPreferences.interests.length > 0 ||
+    !!userPreferences.confidence ||
+    !!userPreferences.goal
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -49,8 +54,7 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
       setStatus('idle');
       setStreak(0);
       try {
-        const interests = userPreferences?.interests;
-        const data = await generateLessonContent(lesson.topic, interests);
+        const data = await generateLessonContent(lesson.topic, userPreferences);
         if (mounted) {
           setTheory(data.theory);
           setQuestions(data.questions);
@@ -188,7 +192,9 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
           <Loader2 className="w-11 h-11 animate-spin text-green-400" />
         </div>
         <p className="text-xl font-extrabold animate-pulse">Preparing lesson...</p>
-        <p className="text-sm text-gray-400 mt-2 max-w-xs">Building a short physics practice round for {lesson.title}.</p>
+        <p className="text-sm text-gray-400 mt-2 max-w-xs">
+          Building a short {hasPersonalization ? 'personalized ' : ''}physics practice round for {lesson.title}.
+        </p>
         <button onClick={onExit} className="mt-12 text-gray-500 hover:text-gray-300 text-sm font-bold uppercase tracking-wide py-2 px-6 rounded-lg border border-gray-700 hover:bg-gray-800 transition-colors">
           Cancel
         </button>
@@ -312,6 +318,12 @@ const QuizView: React.FC<QuizViewProps> = ({ lesson, userPreferences, onComplete
           <h1 className="text-2xl font-bold text-center text-white mb-8">
             {theory.title}
           </h1>
+
+          {hasPersonalization && (
+            <div className="mb-6 rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-center text-sm font-bold text-blue-200">
+              Tuned to your preferences
+            </div>
+          )}
 
           <div className="space-y-6 text-lg text-gray-300 leading-relaxed">
             {theory.paragraphs.map((para, idx) => (

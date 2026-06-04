@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { LessonContent, Question } from "../types";
+import { PERSONALIZATION_OPTIONS } from "../constants";
+import { LessonContent, Question, UserPreferences } from "../types";
 
 // Lazy initialization to avoid top-level ReferenceError if process is undefined
 let ai: GoogleGenAI | null = null;
@@ -13,21 +14,73 @@ const getAI = () => {
   return ai;
 }
 
-const getFallbackLessonContent = (topic: string, isRevision: boolean): LessonContent => {
+const getPreferenceLabels = (preferences?: UserPreferences) => {
+  if (!preferences) {
+    return {
+      interests: [],
+      confidence: '',
+      goal: ''
+    };
+  }
+
+  return {
+    interests: preferences.interests.map(id => PERSONALIZATION_OPTIONS.interests.find(option => option.id === id)?.label || id),
+    confidence: PERSONALIZATION_OPTIONS.confidence.find(option => option.id === preferences.confidence)?.label || preferences.confidence,
+    goal: PERSONALIZATION_OPTIONS.goals.find(option => option.id === preferences.goal)?.label || preferences.goal
+  };
+};
+
+const getPersonalizationPrompt = (preferences?: UserPreferences) => {
+  if (!preferences) return '';
+
+  const labels = getPreferenceLabels(preferences);
+  const interestText = labels.interests.length > 0 ? labels.interests.join(', ') : 'general everyday life';
+
+  const confidenceInstruction: Record<UserPreferences['confidence'], string> = {
+    high: 'The learner feels confident, so include one slightly challenging application question while keeping the lesson friendly.',
+    medium: 'The learner finds physics okay but sometimes confusing, so explain each idea step by step and avoid sudden jumps.',
+    low: 'The learner finds physics hard, so use very simple language, short sentences, and confidence-building examples.',
+    unknown: 'The learner is not sure yet, so keep the tone welcoming and avoid assuming prior knowledge.'
+  };
+
+  const goalInstruction: Record<UserPreferences['goal'], string> = {
+    school: 'Aim the lesson at school understanding: definitions, conceptual clarity, and simple classroom-style examples.',
+    grades: 'Help the learner improve grades: include common mistake warnings and questions that check exam-style understanding.',
+    exam: 'Support exam preparation: include precise wording, unit awareness, and at least one question that feels like revision practice.',
+    fun: 'Make the lesson playful and curiosity-led while still teaching the correct physics.',
+    world: 'Connect the concept to real-world situations and explain why the idea matters outside class.'
+  };
+
+  return `\n\nPERSONALIZATION PROFILE:
+  - Interests to use for examples where naturally relevant: ${interestText}.
+  - Confidence: ${labels.confidence}. ${confidenceInstruction[preferences.confidence]}
+  - Goal: ${labels.goal}. ${goalInstruction[preferences.goal]}
+
+  PERSONALIZATION RULES:
+  - Make at least one theory example and at least one quiz question reflect the learner's interests when it fits the topic.
+  - Do not force an interest if it makes the physics less accurate; choose the closest natural example instead.
+  - Keep the physics correct for middle/high school learners.
+  - Mention the personalized context directly in the content, not as meta commentary.`;
+};
+
+const getFallbackLessonContent = (topic: string, isRevision: boolean, preferences?: UserPreferences): LessonContent => {
   const cleanTopic = topic
     .replace(/\([^)]*\)/g, '')
     .replace(/\s+/g, ' ')
     .trim();
   const normalizedTopic = topic.toLowerCase();
+  const labels = getPreferenceLabels(preferences);
+  const primaryInterest = labels.interests[0] || 'everyday life';
+  const goalText = labels.goal ? ` This is framed for your goal: ${labels.goal.toLowerCase()}.` : '';
 
   const fallback: LessonContent = {
     theory: {
       title: isRevision ? 'Quick Revision' : 'Physics Warm-Up',
       paragraphs: isRevision
-        ? ['This review checks the biggest ideas from the unit. Read each question slowly and use the explanations to patch any gaps.']
+        ? [`This review checks the biggest ideas from the unit. Read each question slowly and use the explanations to patch any gaps.${goalText}`]
         : [
             `Today you are learning about **${cleanTopic}**. Physics is about spotting patterns in how the world moves, changes, and transfers energy.`,
-            `Start with the main idea, then test it with simple examples. A good physics answer explains what changes, what stays the same, and why.`
+            `We will connect it to ${primaryInterest.toLowerCase()} where we can. A good physics answer explains what changes, what stays the same, and why.${goalText}`
           ],
       keyPoint: isRevision
         ? 'Use every mistake as a clue for what to review next.'
@@ -128,17 +181,12 @@ const hasUsableContent = (data: any): data is LessonContent => {
   );
 };
 
-export const generateLessonContent = async (topic: string, interests?: string[]): Promise<LessonContent> => {
+export const generateLessonContent = async (topic: string, preferences?: UserPreferences): Promise<LessonContent> => {
   const isRevision = topic.toLowerCase().includes('revision') || topic.toLowerCase().includes('review') || topic.toLowerCase().includes('quiz');
 
   try {
     let promptContext = `Create a ${isRevision ? 'comprehensive revision quiz' : 'bite-sized physics lesson'} about "${topic}" for a mobile app.`;
-    
-    if (interests && interests.length > 0) {
-      promptContext += `\n\nIMPORTANT PERSONALIZATION: The user loves ${interests.join(', ')}. 
-      Please try to frame the Theory examples and Quiz Questions around these specific topics if applicable. 
-      (e.g., if they like 'cars', use car acceleration examples. If 'sports', use projectile motion of balls).`;
-    }
+    promptContext += getPersonalizationPrompt(preferences);
 
     let structureInstructions = '';
 
@@ -259,7 +307,7 @@ export const generateLessonContent = async (topic: string, interests?: string[])
     const data = JSON.parse(jsonText);
     if (!data.questions) data.questions = [];
     if (!hasUsableContent(data)) {
-      return getFallbackLessonContent(topic, isRevision);
+      return getFallbackLessonContent(topic, isRevision, preferences);
     }
 
     // --- MANUAL OVERRIDES & INJECTIONS ---
@@ -378,6 +426,6 @@ export const generateLessonContent = async (topic: string, interests?: string[])
     return data as LessonContent;
   } catch (error) {
     console.error("Failed to generate lesson content:", error);
-    return getFallbackLessonContent(topic, isRevision);
+    return getFallbackLessonContent(topic, isRevision, preferences);
   }
 };
